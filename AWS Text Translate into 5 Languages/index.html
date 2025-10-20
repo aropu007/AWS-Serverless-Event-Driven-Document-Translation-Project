@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Translation Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background-color: #f8f9ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background-color: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .translated-files {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .file-item:hover {
+            transform: translateX(5px);
+            background: #e8ebff;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .file-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .language-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .language-chip {
+            background: #e8ebff;
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 Document Translation Service</h1>
+            <p>Allows You to Upload, Translate, and Download into TXT File.
+                Designed & Devoloped By ABDUR OPU - Powered by AWS</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="card">
+                <h2>📤 Upload Document</h2>
+                
+                <div id="uploadArea" class="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p style="color: #999; font-size: 0.9em;">PDF, DOC, or TXT files</p>
+                </div>
+                
+                <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt">
+                
+                <div id="fileInfo" class="file-info">
+                    <p><strong>Selected File:</strong> <span id="fileName"></span></p>
+                    <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="languageSelect">Select Target Language</label>
+                    <select id="languageSelect">
+                        <option value="es">Spanish (Español)</option>
+                        <option value="fr">French (Français)</option>
+                        <option value="ar">Arabic (العربية)</option>
+                        <option value="ru">Russian (Русский)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                    </select>
+                </div>
+
+                <div class="language-grid">
+                    <div class="language-chip">🇪🇸 Spanish</div>
+                    <div class="language-chip">🇫🇷 French</div>
+                    <div class="language-chip">🇸🇦 Arabic</div>
+                    <div class="language-chip">🇷🇺 Russian</div>
+                    <div class="language-chip">🇧🇩 Bengali</div>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+                <div id="uploadSpinner" class="spinner"></div>
+
+                <button id="uploadBtn" class="btn" disabled>Upload & Translate</button>
+            </div>
+
+            <!-- Download Section -->
+            <div class="card">
+                <h2>📥 Translated Documents</h2>
+                
+                <button id="refreshBtn" class="btn" style="margin-bottom: 20px;">
+                    🔄 Refresh List
+                </button>
+
+                <div id="downloadSpinner" class="spinner"></div>
+                
+                <div id="translatedFiles" class="translated-files">
+                    <p style="text-align: center; color: #999;">No translated files yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ CONFIGURATION - UPDATE THIS WITH YOUR API GATEWAY URL ⚠️
+        const API_URL = 'https://pg885heyvk.execute-api.us-east-1.amazonaws.com/prod';
+        
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const languageSelect = document.getElementById('languageSelect');
+        const statusMessage = document.getElementById('statusMessage');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const downloadSpinner = document.getElementById('downloadSpinner');
+        const translatedFiles = document.getElementById('translatedFiles');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        let selectedFile = null;
+
+        // Upload Area Click
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and Drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File Input Change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Handle File Selection
+        function handleFileSelect(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            uploadBtn.disabled = false;
+        }
+
+        // Format File Size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Show Status Message
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message show ${type}`;
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        // Upload Button Click
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.add('show');
+            showStatus('Uploading and processing...', 'info');
+
+            try {
+                // Read file as base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const fileContent = e.target.result;
+
+                    // Send to API
+                    const response = await fetch(`${API_URL}/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fileContent: fileContent,
+                            fileName: selectedFile.name,
+                            targetLanguage: languageSelect.value
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showStatus('✅ File uploaded successfully! Translation in progress...', 'success');
+                        
+                        // Reset form
+                        selectedFile = null;
+                        fileInput.value = '';
+                        fileInfo.classList.remove('show');
+                        
+                        // Refresh file list after a delay
+                        setTimeout(() => loadTranslatedFiles(), 3000);
+                    } else {
+                        showStatus('❌ Upload failed: ' + result.error, 'error');
+                    }
+
+                    uploadBtn.disabled = false;
+                    uploadSpinner.classList.remove('show');
+                };
+
+                reader.readAsDataURL(selectedFile);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Error uploading file: ' + error.message, 'error');
+                uploadBtn.disabled = false;
+                uploadSpinner.classList.remove('show');
+            }
+        });
+
+        // Load Translated Files
+        async function loadTranslatedFiles() {
+            downloadSpinner.classList.add('show');
+
+            try {
+                const response = await fetch(`${API_URL}/list`);
+                const result = await response.json();
+
+                if (response.ok && result.files.length > 0) {
+                    translatedFiles.innerHTML = result.files.map(file => `
+                        <div class="file-item">
+                            <div class="file-details">
+                                <div class="file-name">${file.key.split('/').pop()}</div>
+                                <div class="file-meta">
+                                    Size: ${formatFileSize(file.size)} | 
+                                    Modified: ${new Date(file.lastModified).toLocaleString()}
+                                </div>
+                            </div>
+                            <button class="download-btn" onclick="downloadFile('${file.downloadUrl}', '${file.key.split('/').pop()}')">
+                                ⬇️ Download
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    translatedFiles.innerHTML = '<p style="text-align: center; color: #999;">No translated files yet</p>';
+                }
+
+            } catch (error) {
+                console.error('Error loading files:', error);
+                translatedFiles.innerHTML = '<p style="text-align: center; color: #dc3545;">Error loading files</p>';
+            }
+
+            downloadSpinner.classList.remove('show');
+        }
+
+        // Download File - Fixed to force download instead of opening
+        async function downloadFile(url, filename) {
+            try {
+                // Show downloading status
+                console.log(`Downloading: ${filename}`);
+                
+                // Fetch the file as a blob
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                
+                // Create a temporary URL for the blob
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                // Create a temporary link and trigger download
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename;
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+                
+                console.log(`Downloaded: ${filename}`);
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert(`Download failed: ${error.message}`);
+            }
+        }
+
+        // Refresh Button
+        refreshBtn.addEventListener('click', loadTranslatedFiles);
+
+        // Initial Load
+        loadTranslatedFiles();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadTranslatedFiles, 30000);
+    </script>
+</body>
+</html>
